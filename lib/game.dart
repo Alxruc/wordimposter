@@ -1,10 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'chooser.dart';
 
 class GamePage extends StatefulWidget {
   final List<String> players;
+  final String dropdownValue;
 
-  GamePage({required this.players});
+  GamePage({required this.players, required this.dropdownValue});
 
   @override
   _GamePageState createState() => _GamePageState();
@@ -13,38 +17,43 @@ class GamePage extends StatefulWidget {
 class _GamePageState extends State<GamePage> {
   String impostor = '';
   Map<String, bool> isImpostor = {};
-  int currentIndex = 0;
-
-  void _chooseImpostor() {
-    impostor = widget.players[Random().nextInt(widget.players.length)];
-    isImpostor = {for (var e in widget.players) e: e == impostor};
-  }
-
-  Text _showImpostorStatus() {
-    int index = currentIndex;
-    String player = widget.players[index ~/ 2];
-    print('index: $index, player: $player');
-    if (index % 2 == 0) {
-      // Show that you have to pass the phone to the next player
-      return Text('Pass the phone to $player');
-    }
-    // Show if the player is the impostor or not
-    bool isPlayerImpostor = isImpostor[player] ?? false;
-
-    return Text(
-        isPlayerImpostor ? 'You are the impostor' : 'You are not the impostor');
-  }
+  List<String> wordList = [];
+  String secretWord = '';
+  bool revealed = false;
+  int index = 0;
 
   @override
   void initState() {
     super.initState();
-    _chooseImpostor();
+    getLines(widget.dropdownValue).then((lines) {
+      setState(() {
+        wordList = lines;
+        _chooseImpostor();
+      });
+    });
   }
 
-  void _nextPlayer() {
-    setState(() {
-      currentIndex = (currentIndex + 1) % (widget.players.length * 2 + 1);
-    });
+  void _chooseImpostor() {
+    impostor = widget.players[Random().nextInt(widget.players.length)];
+    isImpostor = {for (var e in widget.players) e: e == impostor};
+    if (wordList.isNotEmpty) {
+      int randomIndex = Random().nextInt(wordList.length);
+      secretWord = wordList.removeAt(randomIndex);
+    }
+  }
+
+  Text _passingAround() {
+    // Everyone is shown the word except the impostor
+    if (index % 2 == 0) {
+      return Text(
+          "Pass the device to ${widget.players[(index ~/ 2) % widget.players.length]}");
+    }
+
+    if (impostor == widget.players[(index ~/ 2) % widget.players.length]) {
+      return Text("You are the impostor!");
+    } else {
+      return Text("The word is: $secretWord");
+    }
   }
 
   @override
@@ -53,25 +62,45 @@ class _GamePageState extends State<GamePage> {
       appBar: AppBar(
         title: Text('Game'),
       ),
-      body: Center(
-        child: Column(
-          children: [
-            currentIndex < (widget.players.length * 2)
-                ? Column(
-                    children: [
-                      _showImpostorStatus(),
-                      ElevatedButton(
-                        onPressed: _nextPlayer,
-                        child: Text('Next player'),
-                      ),
-                    ],
+      body: Column(
+        children: [
+          index < widget.players.length * 2
+              ? Column(children: [
+                  _passingAround(),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        index++;
+                      });
+                    },
+                    child:
+                        index % 2 == 0 ? Text('Reveal word') : Text('Got it!'),
                   )
-                : ElevatedButton(
-                    onPressed: _nextPlayer,
-                    child: Text('Start'),
-                  ),
-          ],
-        ),
+                ])
+              : Column(children: [
+                  revealed
+                      ? Column(children: [
+                          Text('The impostor is: $impostor'),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: Text('End game'),
+                          ),
+                        ])
+                      : Column(children: [
+                          Text('The game has started!'),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                revealed = true;
+                              });
+                            },
+                            child: Text('Reveal the impostor'),
+                          )
+                        ]),
+                ]),
+        ],
       ),
     );
   }
