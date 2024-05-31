@@ -22,6 +22,12 @@ class _GamePageState extends State<GamePage> {
   bool revealed = false;
   int index = 0;
 
+  TextStyle gameStyle() {
+    return TextStyle(
+        fontWeight: FontWeight.w700,
+        fontSize: MediaQuery.of(context).size.width * 0.08);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -46,13 +52,24 @@ class _GamePageState extends State<GamePage> {
     // Everyone is shown the word except the impostor
     if (index % 2 == 0) {
       return Text(
-          "Pass the device to ${widget.players[(index ~/ 2) % widget.players.length]}");
+        "Pass the device to ${widget.players[(index ~/ 2) % widget.players.length]}",
+        textAlign: TextAlign.center,
+        style: gameStyle(),
+      );
     }
 
     if (impostor == widget.players[(index ~/ 2) % widget.players.length]) {
-      return Text("You are the impostor!");
+      return Text(
+        "You are the impostor!",
+        textAlign: TextAlign.center,
+        style: gameStyle(),
+      );
     } else {
-      return Text("The word is: $secretWord");
+      return Text(
+        "The word is: $secretWord",
+        textAlign: TextAlign.center,
+        style: gameStyle(),
+      );
     }
   }
 
@@ -60,48 +77,89 @@ class _GamePageState extends State<GamePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Game'),
+        title: const Text('Word Impostor Game'),
       ),
-      body: Column(
-        children: [
-          index < widget.players.length * 2
-              ? Column(children: [
-                  _passingAround(),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        index++;
-                      });
-                    },
-                    child:
-                        index % 2 == 0 ? Text('Reveal word') : Text('Got it!'),
+      body: LayoutBuilder(
+          builder: (BuildContext context, BoxConstraints constraints) {
+        return Center(
+          child: SingleChildScrollView(
+            child: index < widget.players.length * 2
+                ? Flex(
+                    direction: Axis.vertical,
+                    children: [
+                      SizedBox(
+                        height: constraints.maxHeight * 0.2,
+                        child: _passingAround(),
+                      ),
+                      SizedBox(
+                        height: constraints.maxHeight * 0.4,
+                        child: Visibility(
+                          visible: index % 2 == 0,
+                          child: Text("📱➡️",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: MediaQuery.of(context).size.width *
+                                      0.11)),
+                        ),
+                      ),
+                      SizedBox(
+                        height: constraints.maxHeight * 0.2,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              index++;
+                            });
+                          },
+                          child: index % 2 == 0
+                              ? const Text('REVEAL WORD!',
+                                  style: TextStyle(fontWeight: FontWeight.bold))
+                              : index == widget.players.length * 2 - 1
+                                  ? const Text('START THE GAME!',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold))
+                                  : const Text('NEXT PLAYER!',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
                   )
-                ])
-              : Column(children: [
-                  revealed
-                      ? Column(children: [
-                          Text('The impostor is: $impostor'),
-                          ElevatedButton(
-                            onPressed: () {
+                : Flex(
+                    direction: Axis.vertical,
+                    children: [
+                      SizedBox(
+                        height: constraints.maxHeight * 0.3,
+                        child: revealed
+                            ? Text('The impostor is: $impostor',
+                                style: gameStyle())
+                            : Text('The game has started!', style: gameStyle()),
+                      ),
+                      SizedBox(
+                        height: constraints.maxHeight * 0.1,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (revealed) {
                               Navigator.pop(context);
-                            },
-                            child: Text('End game'),
-                          ),
-                        ])
-                      : Column(children: [
-                          Text('The game has started!'),
-                          ElevatedButton(
-                            onPressed: () {
+                            } else {
                               setState(() {
                                 revealed = true;
                               });
-                            },
-                            child: Text('Reveal the impostor'),
-                          )
-                        ]),
-                ]),
-        ],
-      ),
+                            }
+                          },
+                          child: revealed
+                              ? const Text('END GAME!',
+                                  style: TextStyle(fontWeight: FontWeight.bold))
+                              : const Text(
+                                  'REVEAL THE IMPOSTOR!',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        );
+      }),
     );
   }
 }
